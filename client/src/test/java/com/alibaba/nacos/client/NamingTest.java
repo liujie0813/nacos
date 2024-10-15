@@ -31,15 +31,15 @@ import java.util.Properties;
 
 @Ignore
 public class NamingTest {
-    
+
     @Test
     public void testServiceList() throws Exception {
-        
+
         Properties properties = new Properties();
         properties.put(PropertyKeyConst.SERVER_ADDR, "127.0.0.1:8848");
         properties.put(PropertyKeyConst.USERNAME, "nacos");
         properties.put(PropertyKeyConst.PASSWORD, "nacos");
-        
+
         Instance instance = new Instance();
         instance.setIp("1.1.1.1");
         instance.setPort(800);
@@ -48,20 +48,22 @@ public class NamingTest {
         map.put("netType", "external");
         map.put("version", "2.0");
         instance.setMetadata(map);
-    
+
+        // 生成注册服务
         NamingService namingService = NacosFactory.createNamingService(properties);
+        // 注册实例
         namingService.registerInstance("nacos.test.1", instance);
-        
+
         ThreadUtils.sleep(5000L);
-        
+
         List<Instance> list = namingService.getAllInstances("nacos.test.1");
-        
+
         System.out.println(list);
-        
+
         ThreadUtils.sleep(30000L);
         //        ExpressionSelector expressionSelector = new ExpressionSelector();
         //        expressionSelector.setExpression("INSTANCE.metadata.registerSource = 'dubbo'");
         //        ListView<String> serviceList = namingService.getServicesOfServer(1, 10, expressionSelector);
-        
+
     }
 }
