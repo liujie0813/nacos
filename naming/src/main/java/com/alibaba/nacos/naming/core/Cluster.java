@@ -144,6 +144,7 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
         if (inited) {
             return;
         }
+        // 健康检查任务
         checkTask = new HealthCheckTask(this);
         
         HealthCheckReactor.scheduleCheck(checkTask);
@@ -293,9 +294,9 @@ public class Cluster extends com.alibaba.nacos.api.naming.pojo.Cluster implement
                 HealthCheckStatus.remv(ip);
             }
         }
-        
+        // 传进来的 instance 列表，重新生成一个 Set
         toUpdateInstances = new HashSet<>(ips);
-        
+        // 替换为新的
         if (ephemeral) {
             ephemeralInstances = toUpdateInstances;
         } else {

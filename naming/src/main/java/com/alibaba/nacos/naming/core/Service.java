@@ -236,7 +236,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         for (String clusterName : clusterMap.keySet()) {
             ipMap.put(clusterName, new ArrayList<>());
         }
-        
+        // 按照 cluster 分类
         for (Instance instance : instances) {
             try {
                 if (instance == null) {
@@ -252,6 +252,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
                     Loggers.SRV_LOG
                             .warn("cluster: {} not found, ip: {}, will create new cluster with default configuration.",
                                     instance.getClusterName(), instance.toJson());
+                    // cluster 不存在时就需要创建，并初始化
                     Cluster cluster = new Cluster(instance.getClusterName(), this);
                     cluster.init();
                     getClusterMap().put(instance.getClusterName(), cluster);
@@ -272,6 +273,7 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
         for (Map.Entry<String, List<Instance>> entry : ipMap.entrySet()) {
             //make every ip mine
             List<Instance> entryIPs = entry.getValue();
+            // 更新每个 cluster 的 instances
             clusterMap.get(entry.getKey()).updateIps(entryIPs, ephemeral);
         }
         
@@ -292,9 +294,11 @@ public class Service extends com.alibaba.nacos.api.naming.pojo.Service implement
      * Init service.
      */
     public void init() {
+        // 每隔 5s 检查一次，移除过期的实例
         HealthCheckReactor.scheduleCheck(clientBeatCheckTask);
         for (Map.Entry<String, Cluster> entry : clusterMap.entrySet()) {
             entry.getValue().setService(this);
+            // 初始化，健康检查任务
             entry.getValue().init();
         }
     }

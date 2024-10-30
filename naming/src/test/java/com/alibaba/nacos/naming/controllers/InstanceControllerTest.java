@@ -56,6 +56,10 @@ import java.util.function.Function;
 @WebAppConfiguration
 public class InstanceControllerTest extends BaseTest {
     
+    /**
+     * 自动实例化 InstanceController
+     * 并把 @Mock 标注过的对象注入进去
+     */
     @InjectMocks
     private InstanceController instanceController;
     
@@ -87,12 +91,18 @@ public class InstanceControllerTest extends BaseTest {
         ipList.add(instance);
         service.updateIPs(ipList, false);
         
+        // Mockito.when().thenReturn()：称为 Stub 打桩
+        // 后续调用这个方法时，就会返回这个 stub 的值
         Mockito.when(serviceManager.getService(Constants.DEFAULT_NAMESPACE_ID, TEST_SERVICE_NAME)).thenReturn(service);
         
+        // MockMvc，创建请求
         MockHttpServletRequestBuilder builder = MockMvcRequestBuilders
                 .post(UtilsAndCommons.NACOS_NAMING_CONTEXT + "/instance").param("serviceName", TEST_SERVICE_NAME)
                 .param("ip", "1.1.1.1").param("port", "9999");
-        String actualValue = mockmvc.perform(builder).andReturn().getResponse().getContentAsString();
+        String actualValue = mockmvc.perform(builder)
+                .andReturn() // 获取结果
+                .getResponse() // 响应
+                .getContentAsString(); // 响应内容
         
         Assert.assertEquals("ok", actualValue);
     }

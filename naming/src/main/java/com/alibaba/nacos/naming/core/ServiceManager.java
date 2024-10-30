@@ -650,6 +650,7 @@ public class ServiceManager implements RecordListener<Service> {
         Service service = getService(namespaceId, serviceName);
         
         synchronized (service) {
+            // 该 Service 的 Instance 列表，包括新的实例
             List<Instance> instanceList = addIpAddresses(service, ephemeral, ips);
             
             Instances instances = new Instances();
@@ -790,14 +791,16 @@ public class ServiceManager implements RecordListener<Service> {
             currentInstances.put(instance.toIpAddr(), instance);
             currentInstanceIds.add(instance.getInstanceId());
         }
-        
+        // 返回的是一个新的 InstanceMap
         Map<String, Instance> instanceMap;
+        // 原来的 Instance
         if (datum != null && null != datum.value) {
             instanceMap = setValid(((Instances) datum.value).getInstanceList(), currentInstances);
         } else {
             instanceMap = new HashMap<>(ips.length);
         }
         
+        // 添加或移除 传进来的 Instance
         for (Instance instance : ips) {
             if (!service.getClusterMap().containsKey(instance.getClusterName())) {
                 Cluster cluster = new Cluster(instance.getClusterName(), service);
@@ -872,6 +875,7 @@ public class ServiceManager implements RecordListener<Service> {
      */
     public void putService(Service service) {
         if (!serviceMap.containsKey(service.getNamespaceId())) {
+            // 命名空间级别，加锁
             synchronized (putServiceLock) {
                 if (!serviceMap.containsKey(service.getNamespaceId())) {
                     serviceMap.put(service.getNamespaceId(), new ConcurrentSkipListMap<>());
@@ -882,8 +886,11 @@ public class ServiceManager implements RecordListener<Service> {
     }
     
     private void putServiceAndInit(Service service) throws NacosException {
+        // 添加到 serviceMap
         putService(service);
+        // 初始化，健康检查任务、过期任务
         service.init();
+        // 添加监听器，实际就是 Service
         consistencyService
                 .listen(KeyBuilder.buildInstanceListKey(service.getNamespaceId(), service.getName(), true), service);
         consistencyService

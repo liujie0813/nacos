@@ -690,7 +690,7 @@ public class InstanceController {
         checkIfDisabled(service);
         
         List<Instance> srvedIPs;
-        
+        // 获取该 service 的该集群的所有实例
         srvedIPs = service.srvIPs(Arrays.asList(StringUtils.split(clusters, ",")));
         
         // filter ips using selector:
