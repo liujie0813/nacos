@@ -295,10 +295,11 @@ public abstract class GrpcClient extends RpcClient {
             if (grpcExecutor == null) {
                 this.grpcExecutor = createGrpcExecutor(serverInfo.getServerIp());
             }
+            // gRPC 端口，默认为 9848
             int port = serverInfo.getServerPort() + rpcPortOffset();
             RequestGrpc.RequestFutureStub newChannelStubTemp = createNewChannelStub(serverInfo.getServerIp(), port);
             if (newChannelStubTemp != null) {
-                
+                // 先发送一个 check 请求
                 Response response = serverCheck(serverInfo.getServerIp(), port, newChannelStubTemp);
                 if (response == null || !(response instanceof ServerCheckResponse)) {
                     shuntDownChannel((ManagedChannel) newChannelStubTemp.getChannel());
@@ -307,6 +308,7 @@ public abstract class GrpcClient extends RpcClient {
                 
                 BiRequestStreamGrpc.BiRequestStreamStub biRequestStreamStub = BiRequestStreamGrpc
                         .newStub(newChannelStubTemp.getChannel());
+                // 创建 GrpcConnection
                 GrpcConnection grpcConn = new GrpcConnection(serverInfo, grpcExecutor);
                 grpcConn.setConnectionId(((ServerCheckResponse) response).getConnectionId());
                 
@@ -317,12 +319,14 @@ public abstract class GrpcClient extends RpcClient {
                 grpcConn.setPayloadStreamObserver(payloadStreamObserver);
                 grpcConn.setGrpcFutureServiceStub(newChannelStubTemp);
                 grpcConn.setChannel((ManagedChannel) newChannelStubTemp.getChannel());
-                //send a  setup request.
+                // 创建一个 setup 请求
                 ConnectionSetupRequest conSetupRequest = new ConnectionSetupRequest();
                 conSetupRequest.setClientVersion(VersionUtils.getFullClientVersion());
                 conSetupRequest.setLabels(super.getLabels());
                 conSetupRequest.setAbilities(super.clientAbilities);
                 conSetupRequest.setTenant(super.getTenant());
+                
+                // 发送 setup 请求
                 grpcConn.sendRequest(conSetupRequest);
                 //wait to register connection setup
                 Thread.sleep(100L);

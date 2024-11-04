@@ -68,6 +68,9 @@ public abstract class RpcClient implements Closeable {
     
     private ServerListFactory serverListFactory;
     
+    /**
+     * 连接事件队列，异步处理（已连接，已断连）
+     */
     protected BlockingQueue<ConnectionEvent> eventLinkedBlockingQueue = new LinkedBlockingQueue<>();
     
     protected volatile AtomicReference<RpcClientStatus> rpcClientStatus = new AtomicReference<>(
@@ -312,7 +315,8 @@ public abstract class RpcClient implements Closeable {
                     ReconnectContext reconnectContext = reconnectionSignal
                             .poll(keepAliveTime, TimeUnit.MILLISECONDS);
                     if (reconnectContext == null) {
-                        // check alive time.
+                        // 没有重连信号时，表示正常连接，会进行心跳检查
+                        // 间隔 5s
                         if (System.currentTimeMillis() - lastActiveTimeStamp >= keepAliveTime) {
                             boolean isHealthy = healthCheck();
                             if (!isHealthy) {
@@ -366,6 +370,7 @@ public abstract class RpcClient implements Closeable {
                             
                         }
                     }
+                    // 重连
                     reconnect(reconnectContext.serverInfo, reconnectContext.onRequestFail);
                 } catch (Throwable throwable) {
                     // Do nothing
@@ -376,7 +381,7 @@ public abstract class RpcClient implements Closeable {
         // connect to server, try to connect to server sync RETRY_TIMES times, async starting if failed.
         Connection connectToServer = null;
         rpcClientStatus.set(RpcClientStatus.STARTING);
-        
+        // 可尝试3次
         int startUpRetryTimes = RETRY_TIMES;
         while (startUpRetryTimes > 0 && connectToServer == null) {
             try {
@@ -385,7 +390,7 @@ public abstract class RpcClient implements Closeable {
                 
                 LoggerUtils.printIfInfoEnabled(LOGGER, "[{}] Try to connect to server on start up, server: {}", name,
                         serverInfo);
-                
+                // 连接 server
                 connectToServer = connectToServer(serverInfo);
             } catch (Throwable e) {
                 LoggerUtils.printIfWarnEnabled(LOGGER,
@@ -404,9 +409,10 @@ public abstract class RpcClient implements Closeable {
         } else {
             switchServerAsync();
         }
-        
+        // 连接重置
         registerServerRequestHandler(new ConnectResetRequestHandler());
         
+        // 探测请求处理器
         // register client detection request.
         registerServerRequestHandler(request -> {
             if (request instanceof ClientDetectionRequest) {
@@ -465,6 +471,7 @@ public abstract class RpcClient implements Closeable {
             return false;
         }
         try {
+            // 发送 HealthCheckRequest 请求
             Response response = this.currentConnection.request(healthCheckRequest, 3000L);
             // not only check server is ok, also check connection is register.
             return response != null && response.isSuccess();

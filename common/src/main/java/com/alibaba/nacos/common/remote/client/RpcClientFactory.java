@@ -94,6 +94,7 @@ public class RpcClientFactory {
         return CLIENT_MAP.computeIfAbsent(clientName, clientNameInner -> {
             LOGGER.info("[RpcClientFactory] create a new rpc client of " + clientName);
             try {
+                // GrpcClient
                 GrpcClient client = new GrpcSdkClient(clientNameInner);
                 client.setThreadPoolCoreSize(threadPoolCoreSize);
                 client.setThreadPoolMaxSize(threadPoolMaxSize);
